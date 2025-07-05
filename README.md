@@ -1,15 +1,12 @@
 Gmail to SMS Notifier via Twilio
 
-
 This project provides a Google Apps Script that connects your Gmail account to Twilio. It automatically sends an SMS notification to your phone when you receive an email that matches a specific sender, subject line, or keyword.
 This tool is designed for personal use only, allowing you to create a custom notification system for important emails without needing to host your own server.
 How It Works & Your Opt-In Consent
 This script runs entirely within your own Google Account. You are in complete control of your data and the notifications you receive.
 Regarding Twilio's Policies: By following this guide to set up and configure this script with your own phone number, you are providing explicit, direct consent to receive automated SMS messages from your own system. This is a "self-service" notification tool you are building for yourself. This setup is intended for individual use and complies with carrier policies by ensuring you are the sole sender and recipient.
 
-
 Setup Guide
-
 
 Follow these five steps to get your notification system running.
 Prerequisites
@@ -54,7 +51,6 @@ critical error, system down
 
 Note: You do not need to use all three watchlist options. Leave any unused property value blank.
 
-
 Step 4: Set the Automatic Trigger
 This tells Google to run the script periodically.
 Click Triggers (⏰ icon) on the left.
@@ -66,12 +62,10 @@ Select type of time based trigger: Minutes timer
 Select minute interval: Every 10 minutes
 Click Save.
 
-
 Step 5: Authorize the Script
 When you save the trigger, Google will ask for permission.
 A new window will appear. Click Review permissions and select your Google account.
 You will see a "Google hasn’t verified this app" warning. This is expected. Click Advanced, then click Go to [Your Project Name] (unsafe).
-
 
 Review the permissions and click Allow.
 That's it! Your notifier is now active. To test it, send yourself an email with a subject or keyword from your watchlist. You should receive an SMS within the time interval you set.

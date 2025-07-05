@@ -1,0 +1,454 @@
+<!DOCTYPE html>
+<html>
+  <head>
+    <base target="_top">
+    <meta charset="utf-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1">
+    <title>Gmail Alert Configuration</title>
+    <style>
+      body {
+        font-family: Arial, sans-serif;
+        margin: 0;
+        padding: 10px;
+        font-size: 14px;
+        color: #333;
+      }
+      .container {
+        max-width: 100%;
+      }
+      h3 {
+        margin-top: 15px;
+        margin-bottom: 5px;
+        border-bottom: 1px solid #eee;
+        padding-bottom: 5px;
+      }
+      .form-group {
+        margin-bottom: 12px;
+      }
+      label {
+        display: block;
+        margin-bottom: 5px;
+        font-weight: bold;
+      }
+      input[type="text"],
+      input[type="password"],
+      input[type="number"],
+      select {
+        width: 100%;
+        padding: 8px;
+        border: 1px solid #ddd;
+        border-radius: 4px;
+        box-sizing: border-box;
+      }
+      button {
+        background-color: #4285f4;
+        color: white;
+        padding: 8px 15px;
+        border: none;
+        border-radius: 4px;
+        cursor: pointer;
+        font-weight: bold;
+        margin-right: 5px;
+      }
+      button:hover {
+        background-color: #3367d6;
+      }
+      .btn-danger {
+        background-color: #db4437;
+      }
+      .btn-danger:hover {
+        background-color: #c53929;
+      }
+      .alert {
+        padding: 10px;
+        border-radius: 4px;
+        margin: 10px 0;
+      }
+      .alert-success {
+        background-color: #d4edda;
+        color: #155724;
+        border: 1px solid #c3e6cb;
+      }
+      .alert-danger {
+        background-color: #f8d7da;
+        color: #721c24;
+        border: 1px solid #f5c6cb;
+      }
+      .tag-container {
+        display: flex;
+        flex-wrap: wrap;
+        margin-top: 5px;
+      }
+      .tag {
+        background: #e0e0e0;
+        padding: 4px 8px;
+        margin-right: 5px;
+        margin-bottom: 5px;
+        border-radius: 4px;
+        display: flex;
+        align-items: center;
+      }
+      .tag-remove {
+        margin-left: 5px;
+        cursor: pointer;
+        font-weight: bold;
+      }
+      .hidden {
+        display: none;
+      }
+      .radio-group {
+        margin-bottom: 10px;
+      }
+      .radio-option {
+        margin-bottom: 5px;
+      }
+      .section {
+        border: 1px solid #eee;
+        padding: 10px;
+        margin-bottom: 15px;
+        border-radius: 4px;
+      }
+    </style>
+  </head>
+  <body>
+    <div class="container">
+      <h2>Gmail Alert Configuration</h2>
+      
+      <div id="notification" class="alert hidden"></div>
+      
+      <h3>Alert Triggers</h3>
+      <div class="section">
+        <div class="form-group">
+          <label for="newKeyword">Keywords in Subject:</label>
+          <div class="input-group">
+            <input type="text" id="newKeyword" placeholder="Enter keyword" />
+            <button type="button" onclick="addKeyword()">Add</button>
+          </div>
+          <div id="keywordContainer" class="tag-container"></div>
+        </div>
+        
+        <div class="form-group">
+          <label for="newSender">Important Senders (email addresses):</label>
+          <div class="input-group">
+            <input type="text" id="newSender" placeholder="Enter email address" />
+            <button type="button" onclick="addSender()">Add</button>
+          </div>
+          <div id="senderContainer" class="tag-container"></div>
+        </div>
+      </div>
+      
+      <h3>Alert Method</h3>
+      <div class="section">
+        <div class="form-group">
+          <div class="radio-group">
+            <div class="radio-option">
+              <input type="radio" id="alertTypeDiscord" name="alertType" value="discord">
+              <label for="alertTypeDiscord">Discord</label>
+            </div>
+            <div class="radio-option">
+              <input type="radio" id="alertTypeTwilio" name="alertType" value="twilio">
+              <label for="alertTypeTwilio">Twilio SMS</label>
+            </div>
+          </div>
+        </div>
+        
+        <!-- Discord Configuration -->
+        <div id="discordConfig" class="hidden">
+          <div class="form-group">
+            <label for="discordWebhookUrl">Discord Webhook URL:</label>
+            <input type="text" id="discordWebhookUrl" placeholder="https://discord.com/api/webhooks/..." />
+            <small>Create a webhook in your Discord server settings</small>
+          </div>
+        </div>
+        
+        <!-- Twilio Configuration -->
+        <div id="twilioConfig" class="hidden">
+          <div class="form-group">
+            <label for="twilioAccountSid">Twilio Account SID:</label>
+            <input type="text" id="twilioAccountSid" />
+          </div>
+          <div class="form-group">
+            <label for="twilioAuthToken">Twilio Auth Token:</label>
+            <input type="password" id="twilioAuthToken" />
+          </div>
+          <div class="form-group">
+            <label for="twilioFromNumber">Twilio From Number:</label>
+            <input type="text" id="twilioFromNumber" placeholder="+1234567890" />
+          </div>
+          <div class="form-group">
+            <label for="twilioToNumber">Your Phone Number:</label>
+            <input type="text" id="twilioToNumber" placeholder="+1234567890" />
+          </div>
+        </div>
+      </div>
+      
+      <h3>General Settings</h3>
+      <div class="section">
+        <div class="form-group">
+          <label for="checkFrequency">Check Frequency (minutes):</label>
+          <input type="number" id="checkFrequency" min="1" max="60" value="5" />
+        </div>
+      </div>
+      
+      <div class="form-group">
+        <button type="button" onclick="saveSettings()" class="btn-primary">Save Configuration</button>
+        <button type="button" onclick="setupTrigger()" class="btn-primary">Setup Automatic Trigger</button>
+        <button type="button" onclick="runNow()" class="btn-primary">Run Now</button>
+      </div>
+    </div>
+    
+    <script>
+      // Global variables for configuration
+      let keywords = [];
+      let senders = [];
+      
+      // Initialize the form
+      window.onload = function() {
+        google.script.run.withSuccessHandler(loadConfig).loadConfig();
+        
+        // Setup radio button event handlers
+        document.querySelectorAll('input[name="alertType"]').forEach(radio => {
+          radio.addEventListener('change', updateAlertTypeVisibility);
+        });
+      };
+      
+      // Update which alert configuration is visible
+      function updateAlertTypeVisibility() {
+        const selectedValue = document.querySelector('input[name="alertType"]:checked')?.value;
+        
+        document.getElementById('discordConfig').classList.add('hidden');
+        document.getElementById('twilioConfig').classList.add('hidden');
+        
+        if (selectedValue === 'discord') {
+          document.getElementById('discordConfig').classList.remove('hidden');
+        } else if (selectedValue === 'twilio') {
+          document.getElementById('twilioConfig').classList.remove('hidden');
+        }
+      }
+      
+      // Load saved configuration
+      function loadConfig(config) {
+        if (!config) return;
+        
+        // Load keywords
+        keywords = config.keywords || [];
+        renderKeywords();
+        
+        // Load senders
+        senders = config.senders || [];
+        renderSenders();
+        
+        // Set alert type
+        if (config.alertType) {
+          const radioElement = document.getElementById(`alertType${capitalize(config.alertType)}`);
+          if (radioElement) {
+            radioElement.checked = true;
+          }
+        }
+        
+        // Load Discord config
+        if (config.discordWebhookUrl) {
+          document.getElementById('discordWebhookUrl').value = config.discordWebhookUrl;
+        }
+        
+        // Load Twilio config
+        if (config.twilioAccountSid) {
+          document.getElementById('twilioAccountSid').value = config.twilioAccountSid;
+        }
+        if (config.twilioAuthToken) {
+          document.getElementById('twilioAuthToken').value = config.twilioAuthToken;
+        }
+        if (config.twilioFromNumber) {
+          document.getElementById('twilioFromNumber').value = config.twilioFromNumber;
+        }
+        if (config.twilioToNumber) {
+          document.getElementById('twilioToNumber').value = config.twilioToNumber;
+        }
+        
+        // Load general settings
+        if (config.checkFrequency) {
+          document.getElementById('checkFrequency').value = config.checkFrequency;
+        }
+        
+        // Update visibility based on selected alert type
+        updateAlertTypeVisibility();
+      }
+      
+      // Add a keyword to the list
+      function addKeyword() {
+        const input = document.getElementById('newKeyword');
+        const keyword = input.value.trim();
+        
+        if (keyword && !keywords.includes(keyword)) {
+          keywords.push(keyword);
+          renderKeywords();
+          input.value = '';
+        }
+      }
+      
+      // Remove a keyword from the list
+      function removeKeyword(index) {
+        keywords.splice(index, 1);
+        renderKeywords();
+      }
+      
+      // Render the keyword tags
+      function renderKeywords() {
+        const container = document.getElementById('keywordContainer');
+        container.innerHTML = '';
+        
+        keywords.forEach((keyword, index) => {
+          const tag = document.createElement('div');
+          tag.className = 'tag';
+          tag.innerHTML = `${escapeHtml(keyword)} <span class="tag-remove" onclick="removeKeyword(${index})">×</span>`;
+          container.appendChild(tag);
+        });
+      }
+      
+      // Add a sender to the list
+      function addSender() {
+        const input = document.getElementById('newSender');
+        const sender = input.value.trim();
+        
+        if (sender && !senders.includes(sender)) {
+          senders.push(sender);
+          renderSenders();
+          input.value = '';
+        }
+      }
+      
+      // Remove a sender from the list
+      function removeSender(index) {
+        senders.splice(index, 1);
+        renderSenders();
+      }
+      
+      // Render the sender tags
+      function renderSenders() {
+        const container = document.getElementById('senderContainer');
+        container.innerHTML = '';
+        
+        senders.forEach((sender, index) => {
+          const tag = document.createElement('div');
+          tag.className = 'tag';
+          tag.innerHTML = `${escapeHtml(sender)} <span class="tag-remove" onclick="removeSender(${index})">×</span>`;
+          container.appendChild(tag);
+        });
+      }
+      
+      // Save all settings
+      function saveSettings() {
+        // Get alert type
+        const alertType = document.querySelector('input[name="alertType"]:checked')?.value;
+        
+        // Prepare config object
+        const config = {
+          keywords: keywords,
+          senders: senders,
+          alertType: alertType,
+          checkFrequency: parseInt(document.getElementById('checkFrequency').value, 10) || 5,
+          lastCheckedTime: Date.now().toString()
+        };
+        
+        // Add Discord config if selected
+        if (alertType === 'discord') {
+          config.discordWebhookUrl = document.getElementById('discordWebhookUrl').value;
+        }
+        
+        // Add Twilio config if selected
+        if (alertType === 'twilio') {
+          config.twilioAccountSid = document.getElementById('twilioAccountSid').value;
+          config.twilioAuthToken = document.getElementById('twilioAuthToken').value;
+          config.twilioFromNumber = document.getElementById('twilioFromNumber').value;
+          config.twilioToNumber = document.getElementById('twilioToNumber').value;
+        }
+        
+        // Save config via server-side function
+        google.script.run
+          .withSuccessHandler(saveSuccess)
+          .withFailureHandler(saveError)
+          .saveConfig(config);
+      }
+      
+      // Handle successful save
+      function saveSuccess(result) {
+        if (result.success) {
+          showNotification(result.message, 'success');
+        } else {
+          showNotification(result.message, 'danger');
+        }
+      }
+      
+      // Handle save error
+      function saveError(error) {
+        showNotification('Error saving configuration: ' + error.toString(), 'danger');
+      }
+      
+      // Show a notification message
+      function showNotification(message, type) {
+        const notification = document.getElementById('notification');
+        notification.innerHTML = message;
+        notification.className = 'alert alert-' + type;
+        notification.classList.remove('hidden');
+        
+        // Auto-hide after 5 seconds
+        setTimeout(() => {
+          notification.classList.add('hidden');
+        }, 5000);
+      }
+      
+      // Setup the automatic trigger
+      function setupTrigger() {
+        google.script.run
+          .withSuccessHandler(triggerSuccess)
+          .withFailureHandler(triggerError)
+          .setupTrigger();
+      }
+      
+      // Handle successful trigger setup
+      function triggerSuccess(message) {
+        showNotification(message, 'success');
+      }
+      
+      // Handle trigger setup error
+      function triggerError(error) {
+        showNotification('Error setting up trigger: ' + error.toString(), 'danger');
+      }
+      
+      // Run the email check now
+      function runNow() {
+        showNotification('Processing emails... Please wait.', 'success');
+        google.script.run
+          .withSuccessHandler(runSuccess)
+          .withFailureHandler(runError)
+          .processEmails();
+      }
+      
+      // Handle successful run
+      function runSuccess(count) {
+        if (count === 0) {
+          showNotification('No new matching emails found.', 'success');
+        } else {
+          showNotification(`Found and alerted about ${count} new email(s).`, 'success');
+        }
+      }
+      
+      // Handle run error
+      function runError(error) {
+        showNotification('Error processing emails: ' + error.toString(), 'danger');
+      }
+      
+      // Utility function to capitalize first letter
+      function capitalize(str) {
+        return str.charAt(0).toUpperCase() + str.slice(1);
+      }
+      
+      // Escape HTML to prevent XSS
+      function escapeHtml(text) {
+        const div = document.createElement('div');
+        div.textContent = text;
+        return div.innerHTML;
+      }
+    </script>
+  </body>
+</html>
