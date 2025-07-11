@@ -17,11 +17,23 @@ const REQUIRED_SCOPES = [
 let CONFIG = {};
 
 /**
- * Shows a configuration sidebar in Gmail
+ * Shows a configuration sidebar in Gmail or Drive
  */
 function onOpen() {
-  SpreadsheetApp.getUi()
-    .createMenu('Gmail Alerts')
+  // Try to get the appropriate UI based on context
+  let ui;
+  try {
+    ui = SpreadsheetApp.getUi();
+  } catch (e) {
+    try {
+      ui = DocumentApp.getUi();
+    } catch (e2) {
+      // Fallback - this might be running in a different context
+      return;
+    }
+  }
+  
+  ui.createMenu('Gmail Alerts')
     .addItem('Configure', 'showConfigSidebar')
     .addItem('Run Now', 'processEmails')
     .addToUi();
@@ -34,7 +46,22 @@ function showConfigSidebar() {
   const html = HtmlService.createHtmlOutputFromFile('ConfigSidebar')
     .setTitle('Gmail Alert Configuration')
     .setWidth(400);
-  SpreadsheetApp.getUi().showSidebar(html);
+  
+  // Try to get the appropriate UI based on context
+  let ui;
+  try {
+    ui = SpreadsheetApp.getUi();
+  } catch (e) {
+    try {
+      ui = DocumentApp.getUi();
+    } catch (e2) {
+      // Fallback to Apps Script UI
+      ui = HtmlService.createHtmlOutput(html.getContent());
+      return;
+    }
+  }
+  
+  ui.showSidebar(html);
 }
 
 /**
@@ -123,8 +150,23 @@ function buildGmailQuery() {
   }
   
   // Only get unread messages newer than the last check time
-  const lastCheckedTime = new Date(parseInt(CONFIG.lastCheckedTime, 10));
-  query.push(`after:${lastCheckedTime.toISOString()}`);
+  const lastCheckedTime = parseInt(CONFIG.lastCheckedTime, 10);
+  if (lastCheckedTime > 0) {
+    // Use Gmail's date format (YYYY/MM/DD)
+    const lastDate = new Date(lastCheckedTime);
+    const year = lastDate.getFullYear();
+    const month = String(lastDate.getMonth() + 1).padStart(2, '0');
+    const day = String(lastDate.getDate()).padStart(2, '0');
+    query.push(`after:${year}/${month}/${day}`);
+  } else {
+    // If no last check time, look for emails from the last hour
+    const oneHourAgo = new Date(Date.now() - 60 * 60 * 1000);
+    const year = oneHourAgo.getFullYear();
+    const month = String(oneHourAgo.getMonth() + 1).padStart(2, '0');
+    const day = String(oneHourAgo.getDate()).padStart(2, '0');
+    query.push(`after:${year}/${month}/${day}`);
+  }
+  
   query.push('is:unread');
   
   return query.join(' ');
@@ -134,44 +176,54 @@ function buildGmailQuery() {
  * Main function to process emails and send alerts
  */
 function processEmails() {
-  loadConfig();
-  
-  // Check if configured
-  if (!isConfigValid()) {
-    Logger.log('Configuration is not valid or complete');
-    return;
-  }
-  
-  const query = buildGmailQuery();
-  const threads = GmailApp.search(query, 0, 100); // Limit to 100 threads for performance
-  const alertMessages = [];
-  
-  // Process each thread
-  threads.forEach(thread => {
-    const subject = thread.getFirstMessageSubject();
-    const sender = thread.getMessages()[0].getFrom();
-    const snippet = thread.getMessages()[0].getPlainBody().substring(0, 200); 
+  try {
+    loadConfig();
     
-    // Add to alert messages
-    alertMessages.push({
-      subject: subject,
-      sender: sender,
-      snippet: snippet,
-      date: thread.getLastMessageDate(),
-      threadId: thread.getId()
+    // Check if configured
+    if (!isConfigValid()) {
+      Logger.log('Configuration is not valid or complete');
+      throw new Error('Configuration is not valid. Please check your settings.');
+    }
+    
+    const query = buildGmailQuery();
+    Logger.log('Gmail query: ' + query);
+    
+    const threads = GmailApp.search(query, 0, 100); // Limit to 100 threads for performance
+    const alertMessages = [];
+    
+    // Process each thread
+    threads.forEach(thread => {
+      const subject = thread.getFirstMessageSubject();
+      const sender = thread.getMessages()[0].getFrom();
+      const snippet = thread.getMessages()[0].getPlainBody().substring(0, 200); 
+      
+      // Add to alert messages
+      alertMessages.push({
+        subject: subject,
+        sender: sender,
+        snippet: snippet,
+        date: thread.getLastMessageDate(),
+        threadId: thread.getId()
+      });
     });
-  });
-  
-  // Send alerts if there are any messages to notify about
-  if (alertMessages.length > 0) {
-    sendAlerts(alertMessages);
+    
+    // Send alerts if there are any messages to notify about
+    if (alertMessages.length > 0) {
+      sendAlerts(alertMessages);
+      Logger.log(`Successfully processed ${alertMessages.length} emails`);
+    } else {
+      Logger.log('No matching emails found');
+    }
+    
+    // Update the last checked time
+    const scriptProperties = PropertiesService.getUserProperties();
+    scriptProperties.setProperty('lastCheckedTime', Date.now().toString());
+    
+    return alertMessages.length;
+  } catch (error) {
+    Logger.log('Error in processEmails: ' + error.toString());
+    throw error;
   }
-  
-  // Update the last checked time
-  const scriptProperties = PropertiesService.getUserProperties();
-  scriptProperties.setProperty('lastCheckedTime', Date.now().toString());
-  
-  return alertMessages.length;
 }
 
 /**
@@ -300,24 +352,35 @@ function sendTwilioAlert(messages) {
  * Sets up a time-based trigger to run the email check automatically
  */
 function setupTrigger() {
-  // Clear existing triggers
-  const triggers = ScriptApp.getProjectTriggers();
-  for (let i = 0; i < triggers.length; i++) {
-    if (triggers[i].getHandlerFunction() === 'processEmails') {
-      ScriptApp.deleteTrigger(triggers[i]);
+  try {
+    // Clear existing triggers
+    const triggers = ScriptApp.getProjectTriggers();
+    for (let i = 0; i < triggers.length; i++) {
+      if (triggers[i].getHandlerFunction() === 'processEmails') {
+        ScriptApp.deleteTrigger(triggers[i]);
+      }
     }
-  }
-  
-  loadConfig();
-  const frequency = CONFIG.checkFrequency || 5;
-  
-  // Create new trigger
-  ScriptApp.newTrigger('processEmails')
-    .timeBased()
-    .everyMinutes(frequency)
-    .create();
     
-  return `Trigger set to check emails every ${frequency} minutes`;
+    loadConfig();
+    const frequency = CONFIG.checkFrequency || 5;
+    
+    // Validate frequency is within allowed range (1-60 minutes)
+    if (frequency < 1 || frequency > 60) {
+      throw new Error('Check frequency must be between 1 and 60 minutes');
+    }
+    
+    // Create new trigger
+    ScriptApp.newTrigger('processEmails')
+      .timeBased()
+      .everyMinutes(frequency)
+      .create();
+      
+    Logger.log(`Trigger set to check emails every ${frequency} minutes`);
+    return `Trigger set to check emails every ${frequency} minutes`;
+  } catch (error) {
+    Logger.log('Error setting up trigger: ' + error.toString());
+    throw error;
+  }
 }
 
 /**
@@ -330,6 +393,52 @@ function testConfiguration() {
     alertType: config.alertType,
     keywordsCount: (config.keywords || []).length,
     sendersCount: (config.senders || []).length,
-    checkFrequency: config.checkFrequency
+    checkFrequency: config.checkFrequency,
+    isValid: isConfigValid(),
+    query: buildGmailQuery()
   };
+}
+
+/**
+ * Debug function to test email processing without sending alerts
+ */
+function debugEmailCheck() {
+  try {
+    loadConfig();
+    
+    if (!isConfigValid()) {
+      return {
+        error: 'Configuration is not valid. Please check your settings.',
+        config: CONFIG
+      };
+    }
+    
+    const query = buildGmailQuery();
+    Logger.log('Gmail query: ' + query);
+    
+    const threads = GmailApp.search(query, 0, 10); // Limit to 10 for debugging
+    const emailInfo = threads.map(thread => ({
+      subject: thread.getFirstMessageSubject(),
+      sender: thread.getMessages()[0].getFrom(),
+      date: thread.getLastMessageDate(),
+      threadId: thread.getId()
+    }));
+    
+    return {
+      query: query,
+      threadsFound: threads.length,
+      emails: emailInfo,
+      config: {
+        keywords: CONFIG.keywords,
+        senders: CONFIG.senders,
+        alertType: CONFIG.alertType,
+        lastCheckedTime: CONFIG.lastCheckedTime
+      }
+    };
+  } catch (error) {
+    return {
+      error: error.toString(),
+      config: CONFIG
+    };
+  }
 }
