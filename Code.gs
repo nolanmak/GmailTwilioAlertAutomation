@@ -180,19 +180,21 @@ function buildGmailQuery() {
   // Only get unread messages newer than the last check time
   const lastCheckedTime = parseInt(CONFIG.lastCheckedTime, 10);
   if (lastCheckedTime > 0) {
-    // Use Gmail's date format (YYYY/MM/DD)
-    const lastDate = new Date(lastCheckedTime);
+    // Use Gmail's date format (YYYY/MM/DD) but subtract a small buffer to avoid missing emails
+    const lastDate = new Date(lastCheckedTime - 60000); // 1 minute buffer
     const year = lastDate.getFullYear();
     const month = String(lastDate.getMonth() + 1).padStart(2, '0');
     const day = String(lastDate.getDate()).padStart(2, '0');
     query.push(`after:${year}/${month}/${day}`);
+    Logger.log(`Searching for emails after: ${year}/${month}/${day} (with 1min buffer)`);
   } else {
-    // If no last check time, look for emails from the last hour
-    const oneHourAgo = new Date(Date.now() - 60 * 60 * 1000);
-    const year = oneHourAgo.getFullYear();
-    const month = String(oneHourAgo.getMonth() + 1).padStart(2, '0');
-    const day = String(oneHourAgo.getDate()).padStart(2, '0');
+    // If no last check time, look for emails from the last 24 hours
+    const yesterday = new Date(Date.now() - 24 * 60 * 60 * 1000);
+    const year = yesterday.getFullYear();
+    const month = String(yesterday.getMonth() + 1).padStart(2, '0');
+    const day = String(yesterday.getDate()).padStart(2, '0');
     query.push(`after:${year}/${month}/${day}`);
+    Logger.log(`First run - searching for emails after: ${year}/${month}/${day} (last 24 hours)`);
   }
   
   query.push('is:unread');
@@ -228,19 +230,34 @@ function processEmails() {
     const threads = GmailApp.search(query, 0, 100); // Limit to 100 threads for performance
     Logger.log(`Found ${threads.length} matching threads`);
     
+    // Get previously alerted thread IDs to avoid duplicates
+    const scriptProperties = PropertiesService.getUserProperties();
+    const alertedThreadIds = JSON.parse(scriptProperties.getProperty('alertedThreadIds') || '[]');
+    Logger.log(`Previously alerted threads: ${alertedThreadIds.length}`);
+    
     const alertMessages = [];
+    const newAlertedThreadIds = [];
     
     // Process each thread
     Logger.log('Processing threads...');
     threads.forEach((thread, index) => {
       Logger.log(`Processing thread ${index + 1}/${threads.length}`);
+      const threadId = thread.getId();
+      
+      // Skip if we've already alerted about this thread
+      if (alertedThreadIds.includes(threadId)) {
+        Logger.log(`  Skipping thread ${threadId} - already alerted`);
+        return;
+      }
+      
       const subject = thread.getFirstMessageSubject();
       const sender = thread.getMessages()[0].getFrom();
       const snippet = thread.getMessages()[0].getPlainBody().substring(0, 200); 
       
-      Logger.log(`  Subject: ${subject}`);
+      Logger.log(`  NEW THREAD - Subject: ${subject}`);
       Logger.log(`  Sender: ${sender}`);
       Logger.log(`  Date: ${thread.getLastMessageDate()}`);
+      Logger.log(`  Thread ID: ${threadId}`);
       
       // Add to alert messages
       alertMessages.push({
@@ -248,8 +265,11 @@ function processEmails() {
         sender: sender,
         snippet: snippet,
         date: thread.getLastMessageDate(),
-        threadId: thread.getId()
+        threadId: threadId
       });
+      
+      // Track this thread ID
+      newAlertedThreadIds.push(threadId);
     });
     
     Logger.log(`Prepared ${alertMessages.length} messages for alerting`);
@@ -263,12 +283,16 @@ function processEmails() {
       Logger.log('No matching emails found - no alerts to send');
     }
     
-    // Update the last checked time
-    Logger.log('Updating last checked time...');
-    const scriptProperties = PropertiesService.getUserProperties();
+    // Update the last checked time and alerted thread IDs
+    Logger.log('Updating last checked time and thread tracking...');
     const newTime = Date.now().toString();
     scriptProperties.setProperty('lastCheckedTime', newTime);
     Logger.log('Last checked time updated to: ' + new Date(parseInt(newTime)).toISOString());
+    
+    // Update the list of alerted thread IDs (keep last 1000 to prevent infinite growth)
+    const updatedAlertedThreadIds = [...alertedThreadIds, ...newAlertedThreadIds].slice(-1000);
+    scriptProperties.setProperty('alertedThreadIds', JSON.stringify(updatedAlertedThreadIds));
+    Logger.log(`Updated alerted thread IDs list: ${updatedAlertedThreadIds.length} total threads tracked`);
     
     Logger.log('=== EMAIL PROCESSING COMPLETED ===');
     return alertMessages.length;
@@ -589,6 +613,28 @@ function testTwilioSMS() {
     return true;
   } catch (error) {
     Logger.log('Error in testTwilioSMS: ' + error.toString());
+    return false;
+  }
+}
+
+/**
+ * Clear the alert history - useful if you want to re-alert about old emails
+ * Call this manually if needed
+ */
+function clearAlertHistory() {
+  Logger.log('=== CLEARING ALERT HISTORY ===');
+  try {
+    const scriptProperties = PropertiesService.getUserProperties();
+    const alertedThreadIds = JSON.parse(scriptProperties.getProperty('alertedThreadIds') || '[]');
+    
+    Logger.log(`Clearing ${alertedThreadIds.length} previously alerted thread IDs`);
+    scriptProperties.setProperty('alertedThreadIds', '[]');
+    scriptProperties.setProperty('lastCheckedTime', '0');
+    
+    Logger.log('Alert history cleared - next run will check all recent emails');
+    return true;
+  } catch (error) {
+    Logger.log('Error clearing alert history: ' + error.toString());
     return false;
   }
 }
