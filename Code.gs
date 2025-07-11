@@ -77,15 +77,30 @@ function saveConfig(config) {
     scriptProperties.setProperty('keywords', JSON.stringify(config.keywords || []));
     scriptProperties.setProperty('senders', JSON.stringify(config.senders || []));
     scriptProperties.setProperty('alertType', config.alertType || 'none');
+    scriptProperties.setProperty('alertTypes', JSON.stringify(config.alertTypes || []));
     
     // Store service-specific configurations
-    if (config.alertType === 'discord') {
+    if (config.alertTypes && config.alertTypes.includes('discord')) {
       scriptProperties.setProperty('discordWebhookUrl', config.discordWebhookUrl || '');
-    } else if (config.alertType === 'twilio') {
+    }
+    if (config.alertTypes && config.alertTypes.includes('twilio')) {
       scriptProperties.setProperty('twilioAccountSid', config.twilioAccountSid || '');
       scriptProperties.setProperty('twilioAuthToken', config.twilioAuthToken || '');
       scriptProperties.setProperty('twilioFromNumber', config.twilioFromNumber || '');
       scriptProperties.setProperty('twilioToNumber', config.twilioToNumber || '');
+    }
+    
+    // Backward compatibility: if alertType is set but alertTypes is not, use alertType
+    if (!config.alertTypes && config.alertType && config.alertType !== 'none') {
+      scriptProperties.setProperty('alertTypes', JSON.stringify([config.alertType]));
+      if (config.alertType === 'discord') {
+        scriptProperties.setProperty('discordWebhookUrl', config.discordWebhookUrl || '');
+      } else if (config.alertType === 'twilio') {
+        scriptProperties.setProperty('twilioAccountSid', config.twilioAccountSid || '');
+        scriptProperties.setProperty('twilioAuthToken', config.twilioAuthToken || '');
+        scriptProperties.setProperty('twilioFromNumber', config.twilioFromNumber || '');
+        scriptProperties.setProperty('twilioToNumber', config.twilioToNumber || '');
+      }
     }
     
     // Store general settings
@@ -111,6 +126,7 @@ function loadConfig() {
       keywords: JSON.parse(scriptProperties.getProperty('keywords') || '[]'),
       senders: JSON.parse(scriptProperties.getProperty('senders') || '[]'),
       alertType: scriptProperties.getProperty('alertType') || 'none',
+      alertTypes: JSON.parse(scriptProperties.getProperty('alertTypes') || '[]'),
       discordWebhookUrl: scriptProperties.getProperty('discordWebhookUrl') || '',
       twilioAccountSid: scriptProperties.getProperty('twilioAccountSid') || '',
       twilioAuthToken: scriptProperties.getProperty('twilioAuthToken') || '',
@@ -119,6 +135,11 @@ function loadConfig() {
       checkFrequency: parseInt(scriptProperties.getProperty('checkFrequency') || '5', 10),
       lastCheckedTime: scriptProperties.getProperty('lastCheckedTime') || '0'
     };
+    
+    // Backward compatibility: if alertTypes is empty but alertType is set, use alertType
+    if (CONFIG.alertTypes.length === 0 && CONFIG.alertType !== 'none') {
+      CONFIG.alertTypes = [CONFIG.alertType];
+    }
     
     Logger.log('Configuration loaded successfully');
     Logger.log('Alert type: ' + CONFIG.alertType);
@@ -278,12 +299,19 @@ function isConfigValid() {
   // Check if the selected alert method is properly configured
   let alertMethodConfigured = false;
   
-  Logger.log('Alert type: ' + CONFIG.alertType);
+  Logger.log('Alert types: ' + JSON.stringify(CONFIG.alertTypes));
+  Logger.log('Legacy alert type: ' + CONFIG.alertType);
   
-  if (CONFIG.alertType === 'discord') {
-    alertMethodConfigured = Boolean(CONFIG.discordWebhookUrl);
-    Logger.log('Discord webhook configured: ' + alertMethodConfigured);
-  } else if (CONFIG.alertType === 'twilio') {
+  // Check if at least one alert method is properly configured
+  let discordConfigured = false;
+  let twilioConfigured = false;
+  
+  if (CONFIG.alertTypes.includes('discord')) {
+    discordConfigured = Boolean(CONFIG.discordWebhookUrl);
+    Logger.log('Discord webhook configured: ' + discordConfigured);
+  }
+  
+  if (CONFIG.alertTypes.includes('twilio')) {
     const hasSid = Boolean(CONFIG.twilioAccountSid);
     const hasToken = Boolean(CONFIG.twilioAuthToken);
     const hasFromNumber = Boolean(CONFIG.twilioFromNumber);
@@ -294,10 +322,14 @@ function isConfigValid() {
     Logger.log('Twilio From Number: ' + hasFromNumber + ' (' + CONFIG.twilioFromNumber + ')');
     Logger.log('Twilio To Number: ' + hasToNumber + ' (' + CONFIG.twilioToNumber + ')');
     
-    alertMethodConfigured = hasSid && hasToken && hasFromNumber && hasToNumber;
-    Logger.log('Twilio fully configured: ' + alertMethodConfigured);
-  } else {
-    Logger.log('No valid alert type selected');
+    twilioConfigured = hasSid && hasToken && hasFromNumber && hasToNumber;
+    Logger.log('Twilio fully configured: ' + twilioConfigured);
+  }
+  
+  alertMethodConfigured = discordConfigured || twilioConfigured;
+  
+  if (CONFIG.alertTypes.length === 0) {
+    Logger.log('No alert types selected');
   }
   
   const isValid = hasSearchCriteria && alertMethodConfigured;
@@ -316,14 +348,21 @@ function sendAlerts(messages) {
     return;
   }
   
-  Logger.log(`Sending alerts for ${messages.length} messages via ${CONFIG.alertType}`);
+  Logger.log(`Sending alerts for ${messages.length} messages via: ${JSON.stringify(CONFIG.alertTypes)}`);
   
-  if (CONFIG.alertType === 'discord') {
+  // Send to all configured alert methods
+  if (CONFIG.alertTypes.includes('discord')) {
+    Logger.log('Sending Discord alert...');
     sendDiscordAlert(messages);
-  } else if (CONFIG.alertType === 'twilio') {
+  }
+  
+  if (CONFIG.alertTypes.includes('twilio')) {
+    Logger.log('Sending Twilio SMS alert...');
     sendTwilioAlert(messages);
-  } else {
-    Logger.log(`Unknown alert type: ${CONFIG.alertType}`);
+  }
+  
+  if (CONFIG.alertTypes.length === 0) {
+    Logger.log('No alert methods configured');
   }
 }
 

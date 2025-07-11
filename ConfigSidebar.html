@@ -133,6 +133,24 @@
       .radio-option {
         margin-bottom: 5px;
       }
+      .checkbox-group {
+        margin-bottom: 10px;
+      }
+      .checkbox-option {
+        margin-bottom: 8px;
+        display: flex;
+        align-items: center;
+        gap: 8px;
+      }
+      .checkbox-option input[type="checkbox"] {
+        width: auto;
+        margin: 0;
+      }
+      .checkbox-option label {
+        margin: 0;
+        font-weight: normal;
+        cursor: pointer;
+      }
       .section {
         border: 1px solid #eee;
         padding: 10px;
@@ -168,48 +186,51 @@
         </div>
       </div>
       
-      <h3>Alert Method</h3>
+      <h3>Alert Methods</h3>
       <div class="section">
         <div class="form-group">
-          <div class="radio-group">
-            <div class="radio-option">
-              <input type="radio" id="alertTypeDiscord" name="alertType" value="discord">
+          <label>Select alert methods (you can choose both):</label>
+          <div class="checkbox-group">
+            <div class="checkbox-option">
+              <input type="checkbox" id="alertTypeDiscord" name="alertType" value="discord">
               <label for="alertTypeDiscord">Discord</label>
             </div>
-            <div class="radio-option">
-              <input type="radio" id="alertTypeTwilio" name="alertType" value="twilio">
+            <div class="checkbox-option">
+              <input type="checkbox" id="alertTypeTwilio" name="alertType" value="twilio">
               <label for="alertTypeTwilio">Twilio SMS</label>
             </div>
           </div>
         </div>
-        
-        <!-- Discord Configuration -->
-        <div id="discordConfig" class="hidden">
-          <div class="form-group">
-            <label for="discordWebhookUrl">Discord Webhook URL:</label>
-            <input type="text" id="discordWebhookUrl" placeholder="https://discord.com/api/webhooks/..." />
-            <small>Create a webhook in your Discord server settings</small>
-          </div>
+      </div>
+      
+      <!-- Discord Configuration -->
+      <div id="discordConfig" class="section hidden">
+        <h4>Discord Configuration</h4>
+        <div class="form-group">
+          <label for="discordWebhookUrl">Discord Webhook URL:</label>
+          <input type="text" id="discordWebhookUrl" placeholder="https://discord.com/api/webhooks/..." />
+          <small>Create a webhook in your Discord server settings</small>
         </div>
-        
-        <!-- Twilio Configuration -->
-        <div id="twilioConfig" class="hidden">
-          <div class="form-group">
-            <label for="twilioAccountSid">Twilio Account SID:</label>
-            <input type="text" id="twilioAccountSid" />
-          </div>
-          <div class="form-group">
-            <label for="twilioAuthToken">Twilio Auth Token:</label>
-            <input type="password" id="twilioAuthToken" />
-          </div>
-          <div class="form-group">
-            <label for="twilioFromNumber">Twilio From Number:</label>
-            <input type="text" id="twilioFromNumber" placeholder="+1234567890" />
-          </div>
-          <div class="form-group">
-            <label for="twilioToNumber">Your Phone Number:</label>
-            <input type="text" id="twilioToNumber" placeholder="+1234567890" />
-          </div>
+      </div>
+      
+      <!-- Twilio Configuration -->
+      <div id="twilioConfig" class="section hidden">
+        <h4>Twilio SMS Configuration</h4>
+        <div class="form-group">
+          <label for="twilioAccountSid">Twilio Account SID:</label>
+          <input type="text" id="twilioAccountSid" />
+        </div>
+        <div class="form-group">
+          <label for="twilioAuthToken">Twilio Auth Token:</label>
+          <input type="password" id="twilioAuthToken" />
+        </div>
+        <div class="form-group">
+          <label for="twilioFromNumber">Twilio From Number:</label>
+          <input type="text" id="twilioFromNumber" placeholder="+1234567890" />
+        </div>
+        <div class="form-group">
+          <label for="twilioToNumber">Your Phone Number:</label>
+          <input type="text" id="twilioToNumber" placeholder="+1234567890" />
         </div>
       </div>
       
@@ -239,23 +260,27 @@
       window.onload = function() {
         google.script.run.withSuccessHandler(loadConfig).loadConfig();
         
-        // Setup radio button event handlers
-        document.querySelectorAll('input[name="alertType"]').forEach(radio => {
-          radio.addEventListener('change', updateAlertTypeVisibility);
+        // Setup checkbox event handlers
+        document.querySelectorAll('input[name="alertType"]').forEach(checkbox => {
+          checkbox.addEventListener('change', updateAlertTypeVisibility);
         });
       };
       
       // Update which alert configuration is visible
       function updateAlertTypeVisibility() {
-        const selectedValue = document.querySelector('input[name="alertType"]:checked')?.value;
+        const discordChecked = document.getElementById('alertTypeDiscord').checked;
+        const twilioChecked = document.getElementById('alertTypeTwilio').checked;
         
-        document.getElementById('discordConfig').classList.add('hidden');
-        document.getElementById('twilioConfig').classList.add('hidden');
-        
-        if (selectedValue === 'discord') {
+        if (discordChecked) {
           document.getElementById('discordConfig').classList.remove('hidden');
-        } else if (selectedValue === 'twilio') {
+        } else {
+          document.getElementById('discordConfig').classList.add('hidden');
+        }
+        
+        if (twilioChecked) {
           document.getElementById('twilioConfig').classList.remove('hidden');
+        } else {
+          document.getElementById('twilioConfig').classList.add('hidden');
         }
       }
       
@@ -271,11 +296,19 @@
         senders = config.senders || [];
         renderSenders();
         
-        // Set alert type
-        if (config.alertType) {
-          const radioElement = document.getElementById(`alertType${capitalize(config.alertType)}`);
-          if (radioElement) {
-            radioElement.checked = true;
+        // Set alert types (can be multiple)
+        if (config.alertTypes) {
+          config.alertTypes.forEach(alertType => {
+            const checkboxElement = document.getElementById(`alertType${capitalize(alertType)}`);
+            if (checkboxElement) {
+              checkboxElement.checked = true;
+            }
+          });
+        } else if (config.alertType) {
+          // Backward compatibility for single alertType
+          const checkboxElement = document.getElementById(`alertType${capitalize(config.alertType)}`);
+          if (checkboxElement) {
+            checkboxElement.checked = true;
           }
         }
         
@@ -371,25 +404,32 @@
       
       // Save all settings
       function saveSettings() {
-        // Get alert type
-        const alertType = document.querySelector('input[name="alertType"]:checked')?.value;
+        // Get selected alert types
+        const alertTypes = [];
+        if (document.getElementById('alertTypeDiscord').checked) {
+          alertTypes.push('discord');
+        }
+        if (document.getElementById('alertTypeTwilio').checked) {
+          alertTypes.push('twilio');
+        }
         
         // Prepare config object
         const config = {
           keywords: keywords,
           senders: senders,
-          alertType: alertType,
+          alertTypes: alertTypes,
+          alertType: alertTypes.length > 0 ? alertTypes[0] : 'none', // Backward compatibility
           checkFrequency: parseInt(document.getElementById('checkFrequency').value, 10) || 5,
           lastCheckedTime: Date.now().toString()
         };
         
         // Add Discord config if selected
-        if (alertType === 'discord') {
+        if (alertTypes.includes('discord')) {
           config.discordWebhookUrl = document.getElementById('discordWebhookUrl').value;
         }
         
         // Add Twilio config if selected
-        if (alertType === 'twilio') {
+        if (alertTypes.includes('twilio')) {
           config.twilioAccountSid = document.getElementById('twilioAccountSid').value;
           config.twilioAuthToken = document.getElementById('twilioAuthToken').value;
           config.twilioFromNumber = document.getElementById('twilioFromNumber').value;
