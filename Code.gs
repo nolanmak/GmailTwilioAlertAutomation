@@ -103,6 +103,7 @@ function saveConfig(config) {
  * @return {Object} The configuration object
  */
 function loadConfig() {
+  Logger.log('Loading configuration from script properties...');
   const scriptProperties = PropertiesService.getUserProperties();
   
   try {
@@ -118,6 +119,12 @@ function loadConfig() {
       checkFrequency: parseInt(scriptProperties.getProperty('checkFrequency') || '5', 10),
       lastCheckedTime: scriptProperties.getProperty('lastCheckedTime') || '0'
     };
+    
+    Logger.log('Configuration loaded successfully');
+    Logger.log('Alert type: ' + CONFIG.alertType);
+    Logger.log('Keywords count: ' + CONFIG.keywords.length);
+    Logger.log('Senders count: ' + CONFIG.senders.length);
+    Logger.log('Last checked time: ' + CONFIG.lastCheckedTime + ' (' + new Date(parseInt(CONFIG.lastCheckedTime || '0')).toISOString() + ')');
     
     return CONFIG;
   } catch (error) {
@@ -176,26 +183,43 @@ function buildGmailQuery() {
  * Main function to process emails and send alerts
  */
 function processEmails() {
+  Logger.log('=== STARTING EMAIL PROCESSING ===');
   try {
+    Logger.log('Loading configuration...');
     loadConfig();
+    Logger.log('Configuration loaded: ' + JSON.stringify(CONFIG, null, 2));
     
     // Check if configured
+    Logger.log('Checking if configuration is valid...');
     if (!isConfigValid()) {
-      Logger.log('Configuration is not valid or complete');
+      Logger.log('Configuration validation failed');
+      Logger.log('Keywords: ' + JSON.stringify(CONFIG.keywords));
+      Logger.log('Senders: ' + JSON.stringify(CONFIG.senders));
+      Logger.log('Alert Type: ' + CONFIG.alertType);
       throw new Error('Configuration is not valid. Please check your settings.');
     }
+    Logger.log('Configuration is valid');
     
     const query = buildGmailQuery();
-    Logger.log('Gmail query: ' + query);
+    Logger.log('Gmail search query: ' + query);
     
+    Logger.log('Searching Gmail for matching threads...');
     const threads = GmailApp.search(query, 0, 100); // Limit to 100 threads for performance
+    Logger.log(`Found ${threads.length} matching threads`);
+    
     const alertMessages = [];
     
     // Process each thread
-    threads.forEach(thread => {
+    Logger.log('Processing threads...');
+    threads.forEach((thread, index) => {
+      Logger.log(`Processing thread ${index + 1}/${threads.length}`);
       const subject = thread.getFirstMessageSubject();
       const sender = thread.getMessages()[0].getFrom();
       const snippet = thread.getMessages()[0].getPlainBody().substring(0, 200); 
+      
+      Logger.log(`  Subject: ${subject}`);
+      Logger.log(`  Sender: ${sender}`);
+      Logger.log(`  Date: ${thread.getLastMessageDate()}`);
       
       // Add to alert messages
       alertMessages.push({
@@ -207,21 +231,30 @@ function processEmails() {
       });
     });
     
+    Logger.log(`Prepared ${alertMessages.length} messages for alerting`);
+    
     // Send alerts if there are any messages to notify about
     if (alertMessages.length > 0) {
+      Logger.log('Sending alerts...');
       sendAlerts(alertMessages);
       Logger.log(`Successfully processed ${alertMessages.length} emails`);
     } else {
-      Logger.log('No matching emails found');
+      Logger.log('No matching emails found - no alerts to send');
     }
     
     // Update the last checked time
+    Logger.log('Updating last checked time...');
     const scriptProperties = PropertiesService.getUserProperties();
-    scriptProperties.setProperty('lastCheckedTime', Date.now().toString());
+    const newTime = Date.now().toString();
+    scriptProperties.setProperty('lastCheckedTime', newTime);
+    Logger.log('Last checked time updated to: ' + new Date(parseInt(newTime)).toISOString());
     
+    Logger.log('=== EMAIL PROCESSING COMPLETED ===');
     return alertMessages.length;
   } catch (error) {
-    Logger.log('Error in processEmails: ' + error.toString());
+    Logger.log('=== ERROR IN EMAIL PROCESSING ===');
+    Logger.log('Error: ' + error.toString());
+    Logger.log('Stack: ' + error.stack);
     throw error;
   }
 }
@@ -231,26 +264,46 @@ function processEmails() {
  * @return {boolean} True if configuration is valid
  */
 function isConfigValid() {
+  Logger.log('Validating configuration...');
+  
   // Need at least one keyword or sender, and a configured alert method
-  const hasSearchCriteria = 
-    (CONFIG.keywords && CONFIG.keywords.length > 0) || 
-    (CONFIG.senders && CONFIG.senders.length > 0);
+  const hasKeywords = CONFIG.keywords && CONFIG.keywords.length > 0;
+  const hasSenders = CONFIG.senders && CONFIG.senders.length > 0;
+  const hasSearchCriteria = hasKeywords || hasSenders;
+  
+  Logger.log('Has keywords: ' + hasKeywords + ' (count: ' + (CONFIG.keywords?.length || 0) + ')');
+  Logger.log('Has senders: ' + hasSenders + ' (count: ' + (CONFIG.senders?.length || 0) + ')');
+  Logger.log('Has search criteria: ' + hasSearchCriteria);
     
   // Check if the selected alert method is properly configured
   let alertMethodConfigured = false;
   
+  Logger.log('Alert type: ' + CONFIG.alertType);
+  
   if (CONFIG.alertType === 'discord') {
     alertMethodConfigured = Boolean(CONFIG.discordWebhookUrl);
+    Logger.log('Discord webhook configured: ' + alertMethodConfigured);
   } else if (CONFIG.alertType === 'twilio') {
-    alertMethodConfigured = Boolean(
-      CONFIG.twilioAccountSid && 
-      CONFIG.twilioAuthToken && 
-      CONFIG.twilioFromNumber && 
-      CONFIG.twilioToNumber
-    );
+    const hasSid = Boolean(CONFIG.twilioAccountSid);
+    const hasToken = Boolean(CONFIG.twilioAuthToken);
+    const hasFromNumber = Boolean(CONFIG.twilioFromNumber);
+    const hasToNumber = Boolean(CONFIG.twilioToNumber);
+    
+    Logger.log('Twilio Account SID: ' + hasSid);
+    Logger.log('Twilio Auth Token: ' + hasToken);
+    Logger.log('Twilio From Number: ' + hasFromNumber + ' (' + CONFIG.twilioFromNumber + ')');
+    Logger.log('Twilio To Number: ' + hasToNumber + ' (' + CONFIG.twilioToNumber + ')');
+    
+    alertMethodConfigured = hasSid && hasToken && hasFromNumber && hasToNumber;
+    Logger.log('Twilio fully configured: ' + alertMethodConfigured);
+  } else {
+    Logger.log('No valid alert type selected');
   }
   
-  return hasSearchCriteria && alertMethodConfigured;
+  const isValid = hasSearchCriteria && alertMethodConfigured;
+  Logger.log('Configuration is valid: ' + isValid);
+  
+  return isValid;
 }
 
 /**
@@ -258,12 +311,19 @@ function isConfigValid() {
  * @param {Array} messages - Array of email message objects to notify about
  */
 function sendAlerts(messages) {
-  if (!messages || messages.length === 0) return;
+  if (!messages || messages.length === 0) {
+    Logger.log('No messages to send alerts for');
+    return;
+  }
+  
+  Logger.log(`Sending alerts for ${messages.length} messages via ${CONFIG.alertType}`);
   
   if (CONFIG.alertType === 'discord') {
     sendDiscordAlert(messages);
   } else if (CONFIG.alertType === 'twilio') {
     sendTwilioAlert(messages);
+  } else {
+    Logger.log(`Unknown alert type: ${CONFIG.alertType}`);
   }
 }
 
@@ -310,8 +370,11 @@ function sendDiscordAlert(messages) {
 function sendTwilioAlert(messages) {
   if (!CONFIG.twilioAccountSid || !CONFIG.twilioAuthToken || 
       !CONFIG.twilioFromNumber || !CONFIG.twilioToNumber) {
+    Logger.log('Missing Twilio configuration');
     return;
   }
+  
+  Logger.log(`Attempting to send Twilio SMS to ${CONFIG.twilioToNumber}`);
   
   // Format the message
   const smsBody = `📬 You have ${messages.length} new important email(s):\n\n` + 
@@ -323,28 +386,43 @@ function sendTwilioAlert(messages) {
   const additionalMsg = messages.length > 3 ? 
     `\n\n+${messages.length - 3} more emails...` : '';
   
+  const finalBody = smsBody + additionalMsg;
+  
   // Prepare the Twilio API request
   const twilioApiUrl = `https://api.twilio.com/2010-04-01/Accounts/${CONFIG.twilioAccountSid}/Messages.json`;
   
   const payload = {
     To: CONFIG.twilioToNumber,
     From: CONFIG.twilioFromNumber,
-    Body: smsBody + additionalMsg
+    Body: finalBody
   };
   
   const options = {
-    method: 'post',
+    method: 'POST',
     headers: {
-      Authorization: 'Basic ' + Utilities.base64Encode(CONFIG.twilioAccountSid + ':' + CONFIG.twilioAuthToken)
+      'Authorization': 'Basic ' + Utilities.base64Encode(CONFIG.twilioAccountSid + ':' + CONFIG.twilioAuthToken),
+      'Content-Type': 'application/x-www-form-urlencoded'
     },
-    payload: payload
+    payload: Object.keys(payload).map(key => `${key}=${encodeURIComponent(payload[key])}`).join('&')
   };
   
   try {
-    UrlFetchApp.fetch(twilioApiUrl, options);
-    Logger.log(`Successfully sent Twilio alert for ${messages.length} emails`);
+    Logger.log(`Sending SMS with body: ${finalBody.substring(0, 100)}...`);
+    const response = UrlFetchApp.fetch(twilioApiUrl, options);
+    const responseText = response.getContentText();
+    const responseCode = response.getResponseCode();
+    
+    Logger.log(`Twilio API Response Code: ${responseCode}`);
+    Logger.log(`Twilio API Response: ${responseText}`);
+    
+    if (responseCode === 201) {
+      Logger.log(`Successfully sent Twilio alert for ${messages.length} emails`);
+    } else {
+      Logger.log(`Twilio API error: ${responseCode} - ${responseText}`);
+    }
   } catch (error) {
     Logger.log('Error sending Twilio alert: ' + error.toString());
+    Logger.log('Stack trace: ' + error.stack);
   }
 }
 
@@ -440,5 +518,38 @@ function debugEmailCheck() {
       error: error.toString(),
       config: CONFIG
     };
+  }
+}
+
+/**
+ * Test function to send a test SMS via Twilio - call this manually to test
+ */
+function testTwilioSMS() {
+  Logger.log('=== TESTING TWILIO SMS ===');
+  try {
+    loadConfig();
+    
+    if (!CONFIG.twilioAccountSid || !CONFIG.twilioAuthToken || 
+        !CONFIG.twilioFromNumber || !CONFIG.twilioToNumber) {
+      Logger.log('Missing Twilio configuration');
+      return false;
+    }
+    
+    // Send test message
+    const testMessage = [{
+      subject: 'Test Email Alert',
+      sender: 'test@example.com',
+      snippet: 'This is a test message to verify your Twilio SMS configuration is working.',
+      date: new Date(),
+      threadId: 'test123'
+    }];
+    
+    Logger.log('Sending test SMS...');
+    sendTwilioAlert(testMessage);
+    Logger.log('Test SMS function completed - check logs above for results');
+    return true;
+  } catch (error) {
+    Logger.log('Error in testTwilioSMS: ' + error.toString());
+    return false;
   }
 }
