@@ -3,7 +3,15 @@
  * 
  * A modular system to monitor Gmail for specific keywords or senders
  * and send alerts via Discord or Twilio.
+ * 
+ * @OnlyCurrentDoc
  */
+
+// Required Gmail API scopes
+const REQUIRED_SCOPES = [
+  'https://www.googleapis.com/auth/gmail.readonly',
+  'https://www.googleapis.com/auth/script.external_request'
+];
 
 // Configuration object - will be populated from user properties
 let CONFIG = {};
@@ -142,7 +150,7 @@ function processEmails() {
   threads.forEach(thread => {
     const subject = thread.getFirstMessageSubject();
     const sender = thread.getMessages()[0].getFrom();
-    const snippet = thread.getFirstMessageSubject(); 
+    const snippet = thread.getMessages()[0].getPlainBody().substring(0, 200); 
     
     // Add to alert messages
     alertMessages.push({
