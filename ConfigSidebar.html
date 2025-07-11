@@ -43,14 +43,35 @@
       button {
         background-color: #4285f4;
         color: white;
-        padding: 8px 15px;
+        padding: 10px 20px;
         border: none;
-        border-radius: 4px;
+        border-radius: 6px;
         cursor: pointer;
-        font-weight: bold;
-        margin-right: 5px;
+        font-weight: 500;
+        font-size: 14px;
+        margin: 5px 8px 5px 0;
+        transition: all 0.2s ease-in-out;
+        box-shadow: 0 2px 4px rgba(0, 0, 0, 0.1);
+        min-width: 120px;
+        display: inline-block;
       }
       button:hover {
+        background-color: #3367d6;
+        transform: translateY(-1px);
+        box-shadow: 0 4px 8px rgba(0, 0, 0, 0.15);
+      }
+      button:active {
+        transform: translateY(0);
+        box-shadow: 0 2px 4px rgba(0, 0, 0, 0.1);
+      }
+      button:focus {
+        outline: none;
+        box-shadow: 0 0 0 3px rgba(66, 133, 244, 0.3);
+      }
+      .btn-primary {
+        background-color: #4285f4;
+      }
+      .btn-primary:hover {
         background-color: #3367d6;
       }
       .btn-danger {
@@ -58,6 +79,16 @@
       }
       .btn-danger:hover {
         background-color: #c53929;
+        transform: translateY(-1px);
+        box-shadow: 0 4px 8px rgba(0, 0, 0, 0.15);
+      }
+      .btn-success {
+        background-color: #0f9d58;
+      }
+      .btn-success:hover {
+        background-color: #0e8a4f;
+        transform: translateY(-1px);
+        box-shadow: 0 4px 8px rgba(0, 0, 0, 0.15);
       }
       .alert {
         padding: 10px;
@@ -120,18 +151,18 @@
       <div class="section">
         <div class="form-group">
           <label for="newKeyword">Keywords in Subject:</label>
-          <div class="input-group">
-            <input type="text" id="newKeyword" placeholder="Enter keyword" />
-            <button type="button" onclick="addKeyword()">Add</button>
+          <div class="input-group" style="display: flex; gap: 8px; align-items: center;">
+            <input type="text" id="newKeyword" placeholder="Enter keyword" style="flex: 1;" />
+            <button type="button" onclick="addKeyword()" class="btn-success" style="min-width: 60px;">Add</button>
           </div>
           <div id="keywordContainer" class="tag-container"></div>
         </div>
         
         <div class="form-group">
           <label for="newSender">Important Senders (email addresses):</label>
-          <div class="input-group">
-            <input type="text" id="newSender" placeholder="Enter email address" />
-            <button type="button" onclick="addSender()">Add</button>
+          <div class="input-group" style="display: flex; gap: 8px; align-items: center;">
+            <input type="text" id="newSender" placeholder="Enter email address" style="flex: 1;" />
+            <button type="button" onclick="addSender()" class="btn-success" style="min-width: 60px;">Add</button>
           </div>
           <div id="senderContainer" class="tag-container"></div>
         </div>
@@ -190,10 +221,12 @@
         </div>
       </div>
       
-      <div class="form-group">
-        <button type="button" onclick="saveSettings()" class="btn-primary">Save Configuration</button>
-        <button type="button" onclick="setupTrigger()" class="btn-primary">Setup Automatic Trigger</button>
-        <button type="button" onclick="runNow()" class="btn-primary">Run Now</button>
+      <div class="form-group" style="margin-top: 20px; padding-top: 15px; border-top: 1px solid #eee;">
+        <div style="display: flex; flex-direction: column; gap: 10px;">
+          <button type="button" onclick="saveSettings()" class="btn-primary" style="width: 100%;">💾 Save Configuration</button>
+          <button type="button" onclick="setupTrigger()" class="btn-primary" style="width: 100%;">⏰ Setup Automatic Trigger</button>
+          <button type="button" onclick="runNow()" class="btn-success" style="width: 100%;">▶️ Run Now</button>
+        </div>
       </div>
     </div>
     
