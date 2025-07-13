@@ -419,8 +419,7 @@
           senders: senders,
           alertTypes: alertTypes,
           alertType: alertTypes.length > 0 ? alertTypes[0] : 'none', // Backward compatibility
-          checkFrequency: parseInt(document.getElementById('checkFrequency').value, 10) || 5,
-          lastCheckedTime: Date.now().toString()
+          checkFrequency: parseInt(document.getElementById('checkFrequency').value, 10) || 5
         };
         
         // Add Discord config if selected
