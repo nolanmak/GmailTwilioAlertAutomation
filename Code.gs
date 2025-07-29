@@ -105,7 +105,12 @@ function saveConfig(config) {
     
     // Store general settings
     scriptProperties.setProperty('checkFrequency', config.checkFrequency || 5);
-    scriptProperties.setProperty('lastCheckedTime', config.lastCheckedTime || '0');
+    
+    // Only update lastCheckedTime if it's explicitly provided in config
+    // This prevents resetting the timestamp when just updating keywords/senders
+    if (config.lastCheckedTime !== undefined) {
+      scriptProperties.setProperty('lastCheckedTime', config.lastCheckedTime);
+    }
     
     return { success: true, message: 'Configuration saved successfully!' };
   } catch (error) {
