@@ -202,7 +202,6 @@ function buildGmailQuery() {
     Logger.log(`First run - searching for emails after: ${year}/${month}/${day} (last 24 hours)`);
   }
   
-  query.push('is:unread');
   
   return query.join(' ');
 }
