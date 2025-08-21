@@ -235,34 +235,46 @@ function processEmails() {
     const threads = GmailApp.search(query, 0, 100); // Limit to 100 threads for performance
     Logger.log(`Found ${threads.length} matching threads`);
     
-    // Get previously alerted thread IDs to avoid duplicates
+    // Get previously alerted message IDs to avoid duplicates
     const scriptProperties = PropertiesService.getUserProperties();
-    const alertedThreadIds = JSON.parse(scriptProperties.getProperty('alertedThreadIds') || '[]');
-    Logger.log(`Previously alerted threads: ${alertedThreadIds.length}`);
+    let alertedMessageIds = JSON.parse(scriptProperties.getProperty('alertedMessageIds') || '[]');
+    
+    // Legacy migration: if we have old threadIds but no messageIds, clear the old data
+    const oldThreadIds = scriptProperties.getProperty('alertedThreadIds');
+    if (oldThreadIds && alertedMessageIds.length === 0) {
+      Logger.log('Migrating from thread-based to message-based tracking - clearing old data');
+      scriptProperties.deleteProperty('alertedThreadIds');
+    }
+    
+    Logger.log(`Previously alerted messages: ${alertedMessageIds.length}`);
     
     const alertMessages = [];
-    const newAlertedThreadIds = [];
+    const newAlertedMessageIds = [];
     
     // Process each thread
     Logger.log('Processing threads...');
     threads.forEach((thread, index) => {
       Logger.log(`Processing thread ${index + 1}/${threads.length}`);
       const threadId = thread.getId();
+      const messages = thread.getMessages();
+      const lastMessage = messages[messages.length - 1];
+      const lastMessageId = lastMessage.getId();
       
-      // Skip if we've already alerted about this thread
-      if (alertedThreadIds.includes(threadId)) {
-        Logger.log(`  Skipping thread ${threadId} - already alerted`);
+      // Skip if we've already alerted about this specific message
+      if (alertedMessageIds.includes(lastMessageId)) {
+        Logger.log(`  Skipping message ${lastMessageId} in thread ${threadId} - already alerted`);
         return;
       }
       
       const subject = thread.getFirstMessageSubject();
-      const sender = thread.getMessages()[0].getFrom();
-      const snippet = thread.getMessages()[0].getPlainBody().substring(0, 200); 
+      const sender = lastMessage.getFrom();
+      const snippet = lastMessage.getPlainBody().substring(0, 200); 
       
-      Logger.log(`  NEW THREAD - Subject: ${subject}`);
+      Logger.log(`  NEW MESSAGE - Subject: ${subject}`);
       Logger.log(`  Sender: ${sender}`);
       Logger.log(`  Date: ${thread.getLastMessageDate()}`);
       Logger.log(`  Thread ID: ${threadId}`);
+      Logger.log(`  Message ID: ${lastMessageId}`);
       
       // Add to alert messages
       alertMessages.push({
@@ -270,11 +282,12 @@ function processEmails() {
         sender: sender,
         snippet: snippet,
         date: thread.getLastMessageDate(),
-        threadId: threadId
+        threadId: threadId,
+        messageId: lastMessageId
       });
       
-      // Track this thread ID
-      newAlertedThreadIds.push(threadId);
+      // Track this message ID
+      newAlertedMessageIds.push(lastMessageId);
     });
     
     Logger.log(`Prepared ${alertMessages.length} messages for alerting`);
@@ -294,10 +307,10 @@ function processEmails() {
     scriptProperties.setProperty('lastCheckedTime', newTime);
     Logger.log('Last checked time updated to: ' + new Date(parseInt(newTime)).toISOString());
     
-    // Update the list of alerted thread IDs (keep last 1000 to prevent infinite growth)
-    const updatedAlertedThreadIds = [...alertedThreadIds, ...newAlertedThreadIds].slice(-1000);
-    scriptProperties.setProperty('alertedThreadIds', JSON.stringify(updatedAlertedThreadIds));
-    Logger.log(`Updated alerted thread IDs list: ${updatedAlertedThreadIds.length} total threads tracked`);
+    // Update the list of alerted message IDs (keep last 1000 to prevent infinite growth)
+    const updatedAlertedMessageIds = [...alertedMessageIds, ...newAlertedMessageIds].slice(-1000);
+    scriptProperties.setProperty('alertedMessageIds', JSON.stringify(updatedAlertedMessageIds));
+    Logger.log(`Updated alerted message IDs list: ${updatedAlertedMessageIds.length} total messages tracked`);
     
     Logger.log('=== EMAIL PROCESSING COMPLETED ===');
     return alertMessages.length;
@@ -630,10 +643,11 @@ function clearAlertHistory() {
   Logger.log('=== CLEARING ALERT HISTORY ===');
   try {
     const scriptProperties = PropertiesService.getUserProperties();
-    const alertedThreadIds = JSON.parse(scriptProperties.getProperty('alertedThreadIds') || '[]');
+    const alertedMessageIds = JSON.parse(scriptProperties.getProperty('alertedMessageIds') || '[]');
     
-    Logger.log(`Clearing ${alertedThreadIds.length} previously alerted thread IDs`);
-    scriptProperties.setProperty('alertedThreadIds', '[]');
+    Logger.log(`Clearing ${alertedMessageIds.length} previously alerted message IDs`);
+    scriptProperties.setProperty('alertedMessageIds', '[]');
+    scriptProperties.deleteProperty('alertedThreadIds'); // Clear legacy data too
     scriptProperties.setProperty('lastCheckedTime', '0');
     
     Logger.log('Alert history cleared - next run will check all recent emails');
