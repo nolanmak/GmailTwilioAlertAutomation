@@ -256,6 +256,10 @@ function processEmails() {
     const alertMessages = [];
     const newAlertedMessageIds = [];
     
+    // Get current user's email address for filtering
+    const currentUserEmail = Session.getActiveUser().getEmail();
+    Logger.log(`Current user email: ${currentUserEmail}`);
+    
     // Process each thread
     Logger.log('Processing threads...');
     threads.forEach((thread, index) => {
@@ -274,7 +278,32 @@ function processEmails() {
       const subject = thread.getFirstMessageSubject();
       const sender = lastMessage.getFrom();
       const snippet = lastMessage.getPlainBody().substring(0, 200);
-      const recipient = lastMessage.getTo(); 
+      const recipient = lastMessage.getTo();
+      
+      // Additional filtering: Skip if message is from current user
+      // Extract email from "Name <email>" format
+      const senderEmail = sender.includes('<') ? 
+        sender.substring(sender.lastIndexOf('<') + 1, sender.lastIndexOf('>')) : 
+        sender;
+      
+      if (senderEmail.toLowerCase() === currentUserEmail.toLowerCase()) {
+        Logger.log(`  Skipping message from self: ${senderEmail}`);
+        return;
+      }
+      
+      // Skip drafts by checking if message is in drafts
+      if (lastMessage.isDraft && lastMessage.isDraft()) {
+        Logger.log(`  Skipping draft message`);
+        return;
+      }
+      
+      // Additional check: Skip if message thread is in sent items
+      const labels = thread.getLabels();
+      const labelNames = labels.map(label => label.getName().toLowerCase());
+      if (labelNames.includes('sent') || labelNames.includes('drafts')) {
+        Logger.log(`  Skipping message in sent/drafts folder`);
+        return;
+      } 
       
       Logger.log(`  NEW MESSAGE - Subject: ${subject}`);
       Logger.log(`  Sender: ${sender}`);
