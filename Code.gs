@@ -182,8 +182,11 @@ function buildGmailQuery() {
     query.push(`(${senderQueries.join(' OR ')})`); 
   }
   
-  // Exclude sent emails - only get emails in inbox
+  // Only get received emails - exclude sent items and drafts
   query.push('in:inbox');
+  query.push('-in:sent');
+  query.push('-in:drafts');
+  query.push('-from:me');
   
   // Only get unread messages newer than the last check time
   const lastCheckedTime = parseInt(CONFIG.lastCheckedTime, 10);
