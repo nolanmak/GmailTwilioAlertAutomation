@@ -270,7 +270,8 @@ function processEmails() {
       
       const subject = thread.getFirstMessageSubject();
       const sender = lastMessage.getFrom();
-      const snippet = lastMessage.getPlainBody().substring(0, 200); 
+      const snippet = lastMessage.getPlainBody().substring(0, 200);
+      const recipient = lastMessage.getTo(); 
       
       Logger.log(`  NEW MESSAGE - Subject: ${subject}`);
       Logger.log(`  Sender: ${sender}`);
@@ -282,6 +283,7 @@ function processEmails() {
       alertMessages.push({
         subject: subject,
         sender: sender,
+        recipient: recipient,
         snippet: snippet,
         date: thread.getLastMessageDate(),
         threadId: threadId,
@@ -421,7 +423,7 @@ function sendDiscordAlert(messages) {
   const embeds = messages.map(message => {
     return {
       title: `New Email: ${message.subject}`,
-      description: `From: ${message.sender}\n\n${message.snippet}`,
+      description: `To: ${message.recipient}\nFrom: ${message.sender}\n\n${message.snippet}`,
       color: 5814783, // Blue color
       timestamp: message.date.toISOString()
     };
@@ -462,7 +464,7 @@ function sendTwilioAlert(messages) {
   // Format the message
   const smsBody = `📬 You have ${messages.length} new important email(s):\n\n` + 
     messages.slice(0, 3).map(message => {
-      return `From: ${message.sender}\nSubject: ${message.subject}`;
+      return `To: ${message.recipient}\nFrom: ${message.sender}\nSubject: ${message.subject}`;
     }).join('\n\n');
   
   // Additional emails notice if there are more than 3
