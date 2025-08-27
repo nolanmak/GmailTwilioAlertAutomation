@@ -1,12 +1,33 @@
 Gmail to SMS Notifier via Twilio
 
-This project provides a Google Apps Script that connects your Gmail account to Twilio. It automatically sends an SMS notification to your phone when you receive an email that matches a specific sender, subject line, or keyword.
-This tool is designed for personal use only, allowing you to create a custom notification system for important emails without needing to host your own server.
-How It Works & Your Opt-In Consent
+## The Problem This Solves
+
+Are you tired of constantly checking email, worried you'll miss something important? Do critical messages get buried in your inbox while you're trying to focus on deep work? 
+
+I created this tool because I was spending too much mental energy on email anxiety. I needed a way to:
+- ✅ Stop obsessively checking Gmail throughout the day
+- ✅ Never let another important email get buried in my inbox
+- ✅ Focus on meaningful work without FOMO about missing urgent messages
+- ✅ Get instant notifications only for emails that actually matter
+
+## The Solution
+
+This project provides a Google Apps Script that connects your Gmail account to Twilio. It automatically sends an SMS notification to your phone when you receive an email that matches specific senders, subject lines, or keywords you define.
+
+**Key Benefits:**
+- 📱 Instant SMS alerts for important emails only
+- 🎯 Customizable filters (keywords, senders, subjects) 
+- 🔒 Runs securely in your own Google Account
+- 🚀 No server hosting required - uses Google Apps Script
+- ⚡ Set-and-forget automation
+
+This tool is designed for personal use, giving you peace of mind and increased productivity by ensuring you never miss what matters while eliminating email-checking compulsion.
+
+## How It Works & Your Opt-In Consent
 This script runs entirely within your own Google Account. You are in complete control of your data and the notifications you receive.
 Regarding Twilio's Policies: By following this guide to set up and configure this script with your own phone number, you are providing explicit, direct consent to receive automated SMS messages from your own system. This is a "self-service" notification tool you are building for yourself. This setup is intended for individual use and complies with carrier policies by ensuring you are the sole sender and recipient.
 
-Setup Guide
+## Setup Guide
 
 Follow these five steps to get your notification system running.
 Prerequisites
