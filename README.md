@@ -69,3 +69,25 @@ You will see a "Google hasn’t verified this app" warning. This is expected. Cl
 
 Review the permissions and click Allow.
 That's it! Your notifier is now active. To test it, send yourself an email with a subject or keyword from your watchlist. You should receive an SMS within the time interval you set.
+
+## Contributing
+
+We welcome contributions! Please see [CONTRIBUTING.md](CONTRIBUTING.md) for guidelines on:
+- Reporting issues
+- Submitting pull requests  
+- Development setup
+- Code style guidelines
+
+## License
+
+This project is licensed under the MIT License - see the [LICENSE](LICENSE) file for details.
+
+## Support
+
+- 🐛 **Found a bug?** Open an [issue](../../issues)
+- 💡 **Have a feature idea?** Open an [issue](../../issues) 
+- 🤝 **Want to contribute?** Check our [contributing guide](CONTRIBUTING.md)
+
+## Disclaimer
+
+This tool is for personal use only. Users are responsible for complying with their email provider's terms of service and applicable laws regarding automated email monitoring.
