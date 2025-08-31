@@ -75,9 +75,20 @@ This project includes a user-friendly configuration interface:
 
 #### You'll see this warning screen:
 
-<div align="center">
-<img src="https://raw.githubusercontent.com/yourusername/GmailTwilioAlertAutomation/main/imgs/Screenshot%202025-08-31%20at%201.57.04%20PM.png" alt="Google Verification Warning" width="500">
-</div>
+**You'll see a screen like this:**
+```
+🛑 Google hasn't verified this app
+
+The app is requesting access to sensitive info in your Google Account. 
+Until the developer ([your-email]) verifies this app with Google, you shouldn't use it.
+
+                    [Hide Advanced]    [BACK TO SAFETY]
+
+Continue only if you understand the risks and trust the developer
+([your-email]).
+
+                    Go to [YourProjectName] (unsafe)
+```
 
 **What to do:**
 1. Click "**Advanced**" (this will show more options)  
@@ -85,9 +96,27 @@ This project includes a user-friendly configuration interface:
 
 #### Then you'll see the permissions screen:
 
-<div align="center">
-<img src="https://raw.githubusercontent.com/yourusername/GmailTwilioAlertAutomation/main/imgs/Screenshot%202025-08-31%20at%201.57.22%20PM.png" alt="Authorization Screen" width="500">
-</div>
+**You'll see a detailed permissions screen like this:**
+```
+📧 [YourProjectName] wants to access your Google Account
+
+This will allow [YourProjectName] to:
+ 📧  Read, compose, send, and permanently delete all your email from Gmail
+ 📄  View and manage documents that this application has been installed in  
+ 📊  View and manage spreadsheets that this application has been installed in
+ 🌐  Connect to an external service
+ ⏰  Allow this application to run when you are not present
+ 🔧  Display and run third-party web content in prompts and sidebars
+
+Make sure you trust [YourProjectName]
+
+                        [Advanced]      [Allow]
+```
+
+<!-- Screenshots available in imgs/ folder:
+- Screenshot 2025-08-31 at 1.57.04 PM.png (Google verification warning)  
+- Screenshot 2025-08-31 at 1.57.22 PM.png (Authorization permissions screen)
+-->
 
 **Review the permissions carefully:**
 - ✅ **Read Gmail**: Needed to scan for matching emails
