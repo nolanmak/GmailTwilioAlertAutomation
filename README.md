@@ -68,14 +68,14 @@ This project includes a user-friendly configuration interface:
 **Important**: When you first run the script, Google will show security warnings because this is a personal script, not a published app. This is normal and expected.
 
 #### You'll see this warning screen:
-![Google Verification Warning](imgs/Screenshot%202025-08-31%20at%201.57.04%20PM.png)
+<img src="imgs/Screenshot%202025-08-31%20at%201.57.04%20PM.png" alt="Google Verification Warning" width="600">
 
 **What to do:**
 1. Click "**Advanced**"  
 2. Click "**Go to [YourProjectName] (unsafe)**"
 
 #### Then you'll see the permissions screen:
-![Authorization Screen](imgs/Screenshot%202025-08-31%20at%201.57.22%20PM.png)
+<img src="imgs/Screenshot%202025-08-31%20at%201.57.22%20PM.png" alt="Authorization Screen" width="600">
 
 **Review the permissions carefully:**
 - ✅ **Read Gmail**: Needed to scan for matching emails
