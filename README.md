@@ -78,7 +78,7 @@ This project includes a user-friendly configuration interface:
 **You'll see a screen like this:**
 
 <div align="center">
-<img src="imgs/Screenshot%202025-08-31%20at%201.57.04%20PM.png" alt="Google Verification Warning" width="500">
+<img src="imgs/google-verification-warning.png" alt="Google Verification Warning" width="500">
 </div>
 
 **What to do:**
@@ -90,7 +90,7 @@ This project includes a user-friendly configuration interface:
 **You'll see a detailed permissions screen like this:**
 
 <div align="center">
-<img src="imgs/Screenshot%202025-08-31%20at%201.57.22%20PM.png" alt="Authorization Screen" width="500">
+<img src="imgs/authorization-screen.png" alt="Authorization Screen" width="500">
 </div>
 
 <!-- Screenshots available in imgs/ folder:
