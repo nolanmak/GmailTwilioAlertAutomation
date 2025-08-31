@@ -29,66 +29,93 @@ Regarding Twilio's Policies: By following this guide to set up and configure thi
 
 ## Setup Guide
 
-Follow these five steps to get your notification system running.
-Prerequisites
-Google Account: Your personal Gmail address.
-Twilio Account: A free or paid account at twilio.com.
-Twilio Phone Number: A number purchased from your Twilio account that can send SMS messages.
-Step 1: Get Your Twilio Credentials
-Log in to your Twilio Console and find the following three values. Keep them ready for Step 3.
-Account SID: Your unique account identifier.
-Auth Token: Your account's secret key.
-Twilio Phone Number: The number you purchased from Twilio.
-Step 2: Create the Google Apps Script
-Go to script.google.com and click New project.
-Delete any existing code in the editor.
-Copy the code from the Code.gs file in this repository and paste it into the editor.
-Step 3: Configure Your Notifier
-Here, you will securely store your credentials and define your watchlist using Google's Script Properties.
-In the script editor, click Project Settings (⚙️ icon).
-Scroll down to Script Properties and click Add script property.
-Add the following properties one by one:
-Required Credentials:
-Property Name
-Value to Enter
-TWILIO_ACCOUNT_SID
-Your Twilio Account SID
-TWILIO_AUTH_TOKEN
-Your Twilio Auth Token
-TWILIO_PHONE_NUMBER
-Your Twilio phone number (e.g., +15017122661)
-RECIPIENT_PHONE_NUMBER
-Your personal cell phone number (e.g., +15558675309)
+Follow these steps to get your notification system running.
 
-Your Watchlist (use commas for multiple entries):
-Property Name
-Example Value
-WATCHLIST_EMAILS
-alerts@my-saas.com, boss@example.com
-WATCHLIST_SUBJECTS
-Urgent, Action Required, System Alert
-WATCHLIST_KEYWORDS
-critical error, system down
+### Prerequisites
+- **Google Account**: Your personal Gmail address
+- **Twilio Account**: A free or paid account at [twilio.com](https://twilio.com)
+- **Twilio Phone Number**: A number purchased from your Twilio account that can send SMS messages
 
-Note: You do not need to use all three watchlist options. Leave any unused property value blank.
+### Step 1: Get Your Twilio Credentials
+Log in to your [Twilio Console](https://console.twilio.com) and find these three values:
+- **Account SID**: Your unique account identifier
+- **Auth Token**: Your account's secret key  
+- **Twilio Phone Number**: The number you purchased from Twilio
 
-Step 4: Set the Automatic Trigger
-This tells Google to run the script periodically.
-Click Triggers (⏰ icon) on the left.
-Click Add Trigger and configure it with these exact settings:
-Choose which function to run: checkGmailForNotifications
-Choose which deployment should run: Head
-Select event source: Time-driven
-Select type of time based trigger: Minutes timer
-Select minute interval: Every 10 minutes
-Click Save.
+### Step 2: Create the Google Apps Script
+1. Go to [script.google.com](https://script.google.com) and click **New project**
+2. Delete any existing code in the editor
+3. Copy the code from `Code.gs` and `ConfigSidebar.html` files in this repository
+4. In Apps Script, create two files:
+   - Rename `Code.gs` and paste the Google Apps Script code
+   - Click **+** → **HTML file** → name it `ConfigSidebar` and paste the HTML code
+5. **Save your project** (Ctrl/Cmd + S)
 
-Step 5: Authorize the Script
-When you save the trigger, Google will ask for permission.
-A new window will appear. Click Review permissions and select your Google account.
-You will see a "Google hasn’t verified this app" warning. This is expected. Click Advanced, then click Go to [Your Project Name] (unsafe).
+### Step 3: Configure Using the Built-in Interface
+This project includes a user-friendly configuration interface:
 
-Review the permissions and click Allow.
+1. **Run the setup function** by clicking the **▶️ Run** button in Apps Script
+2. **Or** open Gmail/Google Sheets and look for the "Gmail Alerts" menu
+3. Click **Configure** to open the configuration sidebar
+4. Fill in your:
+   - Twilio credentials (SID, Auth Token, Phone Numbers)  
+   - Keywords you want to monitor
+   - Important sender email addresses
+   - Check frequency (how often to scan for new emails)
+
+### Step 4: Handle Google Authorization ⚠️
+
+**Important**: When you first run the script, Google will show security warnings because this is a personal script, not a published app. This is normal and expected.
+
+#### You'll see this warning screen:
+![Google Verification Warning](imgs/Screenshot%202025-08-31%20at%201.57.04%20PM.png)
+
+**What to do:**
+1. Click "**Advanced**"  
+2. Click "**Go to [YourProjectName] (unsafe)**"
+
+#### Then you'll see the permissions screen:
+![Authorization Screen](imgs/Screenshot%202025-08-31%20at%201.57.22%20PM.png)
+
+**Review the permissions carefully:**
+- ✅ **Read Gmail**: Needed to scan for matching emails
+- ✅ **External connections**: Needed to send SMS via Twilio  
+- ✅ **Run when not present**: Needed for automatic checking
+
+3. Click "**Allow**" if you trust the code (you can review it first!)
+
+### Step 5: Set Up Automatic Monitoring
+1. In the configuration interface, click "**Setup Automatic Trigger**"
+2. **Or** manually in Apps Script:
+   - Click **Triggers** (⏰ icon) on the left
+   - Click **Add Trigger**
+   - Function: `processEmails`
+   - Event source: **Time-driven**
+   - Type: **Minutes timer** 
+   - Interval: **Every 5-10 minutes** (your choice)
+
+### Step 6: Test Your Setup
+1. Click "**Run Now**" in the configuration interface to test immediately
+2. Send yourself a test email with one of your monitored keywords
+3. You should receive an SMS within your configured time interval
+
+## Alternative Configuration (Advanced Users)
+
+If you prefer to configure manually via Script Properties:
+
+1. In Apps Script, click **Project Settings** (⚙️ icon)
+2. Scroll to **Script Properties** → **Add script property**
+3. Add these properties:
+
+| Property Name | Example Value |
+|--------------|---------------|
+| `keywords` | `["urgent", "alert", "important"]` |
+| `senders` | `["boss@company.com", "alerts@service.com"]` |
+| `alertTypes` | `["twilio"]` |
+| `twilioAccountSid` | `AC1234567890abcdef` |
+| `twilioAuthToken` | `your_auth_token_here` |
+| `twilioFromNumber` | `+15551234567` |
+| `twilioToNumber` | `+15559876543` |
 That's it! Your notifier is now active. To test it, send yourself an email with a subject or keyword from your watchlist. You should receive an SMS within the time interval you set.
 
 ## Contributing
