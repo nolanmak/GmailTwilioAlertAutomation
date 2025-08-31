@@ -68,14 +68,35 @@ This project includes a user-friendly configuration interface:
 **Important**: When you first run the script, Google will show security warnings because this is a personal script, not a published app. This is normal and expected.
 
 #### You'll see this warning screen:
-<img src="imgs/Screenshot%202025-08-31%20at%201.57.04%20PM.png" alt="Google Verification Warning" width="600">
+```
+🛑 Google hasn't verified this app
+
+The app is requesting access to sensitive info in your Google Account. 
+Until the developer ([your-email]) verifies this app with Google, you shouldn't use it.
+
+[Hide Advanced] [BACK TO SAFETY]
+
+Continue only if you understand the risks and trust the developer.
+```
 
 **What to do:**
-1. Click "**Advanced**"  
+1. Click "**Advanced**" (this will show more options)  
 2. Click "**Go to [YourProjectName] (unsafe)**"
 
 #### Then you'll see the permissions screen:
-<img src="imgs/Screenshot%202025-08-31%20at%201.57.22%20PM.png" alt="Authorization Screen" width="600">
+```
+📧 gmailAppscripts wants to access your Google Account
+
+This will allow gmailAppscripts to:
+• Read, compose, send, and permanently delete all your email from Gmail
+• View and manage documents that this application has been installed in  
+• View and manage spreadsheets that this application has been installed in
+• Connect to an external service
+• Allow this application to run when you are not present
+• Display and run third-party web content in prompts and sidebars
+
+Make sure you trust gmailAppscripts
+```
 
 **Review the permissions carefully:**
 - ✅ **Read Gmail**: Needed to scan for matching emails
